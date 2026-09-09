@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customer Churn — Decision Tree Jupyter-Style Interactive Notebook</title>
+<style>
+:root{
+  --bg:#0b0f14;--cell:#171c23;--code:#0a0e13;--border:#303846;--text:#eef2f7;
+  --muted:#98a4b5;--blue:#4da3ff;--green:#2bd576;--purple:#b678ff;
+  --orange:#ffb33d;--red:#ff6673;--cyan:#36d9e8;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif}
+.page{max-width:1280px;margin:auto;padding:28px 22px 70px}
+.header{border-bottom:1px solid var(--border);padding-bottom:18px;margin-bottom:22px}
+.header h1{font-size:28px;margin:0 0 7px}.header p{margin:0;color:var(--muted)}
+.notebook{counter-reset:cell}
+.cell{background:var(--cell);border:1px solid var(--border);border-radius:10px;margin:14px 0;overflow:hidden;box-shadow:0 5px 18px rgba(0,0,0,.12)}
+.cell-head{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);background:#1c222b}
+.prompt{font-family:ui-monospace,Consolas,monospace;color:#4da3ff;font-size:13px;min-width:58px}
+.cell-title{font-weight:700;flex:1;font-size:16px}.run{background:#238b4e;color:white;border:0;border-radius:6px;padding:7px 12px;font-weight:700;cursor:pointer}
+.run:hover{filter:brightness(1.08)}.copy{background:#29313d;color:#dce4ef;border:0;border-radius:6px;padding:7px 10px;cursor:pointer}
+.code{padding:16px;background:var(--code);font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:15px;line-height:1.72;white-space:pre-wrap;color:#d8e1ec}
+.output{display:none;border-top:1px solid var(--border);padding:15px;background:#11161d}.output.show{display:block}
+.backend{display:none;margin:0 14px 14px;border:1px solid #155e4a;background:#0d211b;border-radius:8px;overflow:hidden}.backend.show{display:block}
+.backend-head{padding:10px 12px;color:#43df83;font-weight:800;border-bottom:1px solid #155e4a}.backend-body{padding:12px;color:#c6d5ce;line-height:1.58;font-size:14px}
+.voice{display:none;margin:0 14px 14px;border:1px solid #55388a;background:#171025;border-radius:8px;padding:11px;color:#d8c8ff;font-size:13px}.voice.show{display:flex;gap:10px;align-items:center}
+.voice button{background:#7042b7;color:#fff;border:0;border-radius:6px;padding:6px 10px;cursor:pointer}
+table{border-collapse:collapse;width:100%;font-size:12px}.tablewrap{overflow:auto;max-height:290px;border:1px solid var(--border);border-radius:7px}
+th,td{padding:8px 10px;border-bottom:1px solid #252c36;text-align:left;white-space:nowrap}th{background:#202731;color:#cbd5e2;position:sticky;top:0}
+.success{padding:10px 12px;background:#0c2519;border:1px solid #17683d;color:#49df88;border-radius:8px}
+.info{padding:10px 12px;background:#101f32;border:1px solid #24517c;color:#a9d5ff;border-radius:8px}
+.warn{padding:10px 12px;background:#2a2110;border:1px solid #745117;color:#ffd37a;border-radius:8px}
+.flex{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.card{background:#151b23;border:1px solid var(--border);border-radius:9px;padding:13px}.small{font-size:13px;color:var(--muted)}.label{font-weight:700;font-size:13px;margin-bottom:6px}
+select,input[type=number],input[type=text]{background:#0c1117;color:#eaf0f6;border:1px solid #3a4452;border-radius:6px;padding:8px}
+.control{display:flex;gap:7px;align-items:center}.control label{font-size:12px;color:var(--muted)}
+.bar{height:30px;background:#222a35;border-radius:6px;overflow:hidden;display:flex;margin-top:9px}.trainbar{background:#287fd0;width:80%;display:flex;align-items:center;justify-content:center;font-size:12px}.testbar{background:#8a5fc7;width:20%;display:flex;align-items:center;justify-content:center;font-size:12px}
+.tree-area{background:#0b1016;border:1px solid #303846;border-radius:8px;overflow:auto;padding:8px}.tree-area svg{display:block;width:100%;min-width:760px}
+.tree-node{fill:#17202b;stroke:#667487;stroke-width:2}.rootnode{fill:#132b46;stroke:#4da3ff}.churnnode{fill:#32191d;stroke:#ff6673}.staynode{fill:#143021;stroke:#2bd576}.edge{stroke:#657386;stroke-width:2}.edge.active{stroke:#4da3ff;stroke-width:4;stroke-dasharray:8 6;animation:move .8s linear infinite}@keyframes move{to{stroke-dashoffset:-28}}
+.svgtext{fill:#eef2f7;font-family:Inter,Arial,sans-serif}.svmuted{fill:#9aa7b8;font-family:Inter,Arial,sans-serif}
+.question-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.question{border:1px solid var(--border);border-radius:8px;padding:11px;cursor:pointer;background:#121820}.question:hover,.question.selected{border-color:#4da3ff;background:#102239}.question b{display:block;margin-bottom:4px}.score{font-family:ui-monospace,monospace;color:#7dd3fc}
+.matrix{display:grid;grid-template-columns:150px 1fr 1fr;max-width:620px;border:1px solid var(--border);border-radius:8px;overflow:hidden}.matrix>div{padding:13px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);text-align:center}.matrix .head{background:#202731;font-weight:700}.tp{background:#173524;color:#62e998}.tn{background:#173524;color:#62e998}.fp,.fn{background:#32191d;color:#ff8c96}
+.metricgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-top:12px}.metric{border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center}.metric b{display:block;font-size:20px;margin:4px 0}.metric span{font-size:11px;color:var(--muted)}
+.prediction{font-size:22px;font-weight:800;padding:14px;border-radius:8px;text-align:center}.churn{background:#32191d;color:#ff8c96;border:1px solid #81353e}.stay{background:#143021;color:#65e99b;border:1px solid #286b43}
+.footer{text-align:center;color:#68768a;font-size:12px;margin-top:30px}
+@media(max-width:850px){.grid2{grid-template-columns:1fr}.question-grid{grid-template-columns:1fr}.metricgrid{grid-template-columns:repeat(2,1fr)}}
+
+.code-editor{
+  display:block;width:100%;min-height:150px;resize:vertical;border:0;outline:0;
+  padding:16px;background:var(--code);color:#d8e1ec;
+  font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+  font-size:15px;line-height:1.72;white-space:pre;overflow:auto;
+}
+.code-editor:focus{box-shadow:inset 0 0 0 1px #24517c}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <h1>Customer Churn Prediction — Decision Tree</h1>
+    <p>Jupyter-style interactive teaching notebook • Run only the cells you want to demonstrate.</p>
+  </div>
+
+  <div class="notebook"><div class="info" style="margin:0 0 12px">
+<b>Notebook mode:</b> click inside any Python cell and edit or remove code. Then click <b>Run Cell</b>.
+</div>
+
+    <section class="cell" id="c1">
+      <div class="cell-head"><span class="prompt">In [1]:</span><span class="cell-title">Read the customer churn dataset</span><button class="copy">Copy</button><button class="run" onclick="runCell(1)">Run Cell</button></div>
+      <textarea class="code-editor" spellcheck="false">import pandas as pd
+
+df = pd.read_csv("customer_churn.csv")
+
+print(f"Dataset loaded into DataFrame df: {df.shape[0]:,} rows × {df.shape[1]} columns")
+
+df.head()</textarea>
+      <div class="output" id="o1">
+        <div class="success">Dataset "customer_churn.csv" loaded into DataFrame <b>df</b> (10,000 rows × 8 columns).</div>
+        <div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>customer_id</th><th>contract</th><th>tenure</th><th>monthly_charges</th><th>support_calls</th><th>internet</th><th>payment</th><th>churn</th></tr></thead><tbody>
+        <tr><td>C001</td><td>Month-to-month</td><td>5</td><td>2300</td><td>6</td><td>Fiber</td><td>Electronic</td><td>Yes</td></tr>
+        <tr><td>C002</td><td>One year</td><td>36</td><td>1500</td><td>1</td><td>DSL</td><td>Bank</td><td>No</td></tr>
+        <tr><td>C003</td><td>Month-to-month</td><td>8</td><td>2500</td><td>5</td><td>Fiber</td><td>Electronic</td><td>Yes</td></tr>
+        <tr><td>C004</td><td>Two year</td><td>48</td><td>1200</td><td>1</td><td>DSL</td><td>Bank</td><td>No</td></tr>
+        <tr><td>C005</td><td>Month-to-month</td><td>24</td><td>1800</td><td>2</td><td>Fiber</td><td>Card</td><td>No</td></tr>
+        </tbody></table></div>
+      </div>
+      <div class="backend" id="b1"><div class="backend-head">⚙ What's happening in the backend?</div><div class="backend-body">Python calls <code>pd.read_csv()</code>. Pandas reads the file, parses the rows and columns, and creates a DataFrame named <code>df</code>. Each row represents a customer and each column contains a customer attribute. Nothing has been learned by the machine-learning model yet.</div></div>
+      <div class="voice" id="v1"><button onclick="speak(1)">▶ Listen</button><span>Trainer voice: “First, we read the historical customer data. Each row is a customer, and Churn is the outcome we eventually want the model to predict.”</span></div>
+    </section>
+
+    <section class="cell" id="c2">
+      <div class="cell-head"><span class="prompt">In [2]:</span><span class="cell-title">Encode categorical features</span><button class="copy">Copy</button><button class="run" onclick="runCell(2)">Run Cell</button></div>
+      <textarea class="code-editor" spellcheck="false">categorical_cols = ["contract", "internet", "payment"]
+
+df_encoded = pd.get_dummies(
+    df,
+    columns=categorical_cols,
+    drop_first=True
+)
+
+df_encoded.head()</textarea>
+      <div class="output" id="o2">
+        <div class="info"><b>One-hot encoding applied.</b> Reference categories are dropped with <code>drop_first=True</code>.</div>
+        <div class="grid2" style="margin-top:12px">
+          <div class="card"><div class="label">Before encoding</div><pre style="color:#ffcc80">contract = "Month-to-month"
+internet = "Fiber"
+payment = "Electronic"</pre></div>
+          <div class="card"><div class="label">After encoding</div><div id="encodingDemo"></div></div>
+        </div>
+        <div class="card" style="margin-top:12px">
+          <div class="label">Try the reference idea</div>
+          <div class="small">Select a Contract value. The reference category is represented by all zeros; a non-reference category activates its own dummy column with 1.</div>
+          <div class="flex" style="margin-top:10px"><select id="encContract" onchange="updateEncoding()"><option>Month-to-month</option><option>One year</option><option>Two year</option></select></div>
+          <div id="encExplain" class="info" style="margin-top:10px"></div>
+        </div>
+      </div>
+      <div class="backend" id="b2"><div class="backend-head">⚙ What's happening in the backend?</div><div class="backend-body"><code>get_dummies()</code> creates binary indicator columns. With <code>drop_first=True</code>, one category is used as the reference category. If Month-to-month is the reference, then Month-to-month is represented by <b>0, 0</b> across the remaining contract dummy columns. One year becomes <b>1, 0</b>; Two year becomes <b>0, 1</b>. The important idea is that the model sees numerical indicators, not the original text labels.</div></div>
+      <div class="voice" id="v2"><button onclick="speak(2)">▶ Listen</button><span>Trainer voice: “Here we convert categories into binary numerical columns. The reference category is represented by zeros, while the selected non-reference category gets a one in its corresponding column.”</span></div>
+    </section>
+
+    <section class="cell" id="c3">
+      <div class="cell-head"><span class="prompt">In [3]:</span><span class="cell-title">Select features and target</span><button class="copy">Copy</button><button class="run" onclick="runCell(3)">Run Cell</button></div>
+      <textarea class="code-editor" spellcheck="false">X = df_encoded.drop("churn", axis=1)
+y = df_encoded["churn"]
+
+print("X =", X.shape)
+print("y =", y.shape)</textarea>
+      <div class="output" id="o3">
+        <div class="grid2">
+          <div class="card"><div class="label">X — Features / Inputs</div><div class="small">Contract indicators • Tenure • Monthly charges • Support calls • Internet indicators • Payment indicators</div><div style="font-size:25px;font-weight:800;margin-top:8px">X → model inputs</div></div>
+          <div class="card"><div class="label">y — Target / Output</div><div class="small">Churn is the value we want the model to learn to predict.</div><div style="font-size:25px;font-weight:800;margin-top:8px">y → Churn</div></div>
+        </div>
+      </div>
+      <div class="backend" id="b3"><div class="backend-head">⚙ What's happening in the backend?</div><div class="backend-body">The DataFrame is divided conceptually into two pieces. <code>X</code> contains the information used to make a prediction. <code>y</code> contains the answer from historical data. During supervised learning, the algorithm learns a relationship between <code>X</code> and <code>y</code>.</div></div>
+      <div class="voice" id="v3"><button onclick="speak(3)">▶ Listen</button><span>Trainer voice: “X contains the customer information. y contains Churn, the answer we want the model to learn.”</span></div>
+    </section>
+
+    <section class="cell" id="c4">
+      <div class="cell-head"><span class="prompt">In [4]:</span><span class="cell-title">Train-test split — 80% training, 20% testing</span><button class="copy">Copy</button><button class="run" onclick="runCell(4)">Run Cell</button></div>
+      <textarea class="code-editor" spellcheck="false">from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=0.20,
+    random_state=42,
+    stratify=y
+)</textarea>
+      <div class="output" id="o4">
+        <div class="card"><div class="label">The dataset is divided before model training</div><div class="bar"><div class="trainbar">80% TRAINING</div><div class="testbar">20% TESTING</div></div><div class="small" style="margin-top:9px">Training data teaches the model. Testing data remains unseen until we check performance.</div></div>
+      </div>
+      <div class="backend" id="b4"><div class="backend-head">⚙ What's happening in the backend?</div><div class="backend-body"><code>train_test_split()</code> separates the rows. <b>X_train and y_train</b> go into <code>fit()</code>. <b>X_test and y_test</b> are kept aside. <code>stratify=y</code> helps preserve the class distribution between the two sets. The test data must not be used to train the model.</div></div>
+      <div class="voice" id="v4"><button onclick="speak(4)">▶ Listen</button><span>Trainer voice: “We keep eighty percent for learning and twenty percent aside. The model must not see the test answers during training, because we want an honest test of how it performs on unseen customers.”</span></div>
+    </section>
+
+    <section class="cell" id="c5">
+      <div class="cell-head"><span class="prompt">In [5]:</span><span class="cell-title">Build and fit the Decision Tree</span><button class="copy">Copy</button><button class="run" onclick="runCell(5)">Run Cell</button></div>
+      <textarea class="code-editor" spellcheck="false">from sklearn.tree import DecisionTreeClassifier
+
+model = DecisionTreeClassifier(
+    criterion="gini",
+    max_depth=4,
+    random_state=42
+)
+
+model.fit(X_train, y_train)</textarea>
+      <div class="output" id="o5">
+        <div class="success"><b>Model trained successfully.</b> The Decision Tree has now learned split rules from the training data.</div>
+        <div class="grid2" style="margin-top:12px">
+          <div class="card"><div class="label">Before <code>fit()</code></div><div style="font-size:20px;font-weight:800">Untrained model</div><div class="small">The classifier object exists, but it has not learned customer patterns.</div></div>
+          <div class="card"><div class="label">After <code>fit()</code></div><div style="font-size:20px;font-weight:800">Trained tree</div><div class="small">Split rules and leaf predictions have been learned from X_train and y_train.</div></div>
+        </div>
+      </div>
+      <div class="backend" id="b5"><div class="backend-head">⚙ What's happening in the backend?</div><div class="backend-body">This is the key learning operation. <code>fit(X_train, y_train)</code> examines candidate feature splits and evaluates how well they separate Churn from Stay according to the selected criterion. It chooses a useful split, creates a node, then recursively searches for useful splits inside the child nodes until stopping conditions such as <code>max_depth</code> are reached.</div></div>
+      <div class="voice" id="v5"><button onclick="speak(5)">▶ Listen</button><span>Trainer voice: “This is training. The algorithm examines possible splits, chooses useful ones according to the criterion, and recursively builds the branches of the tree.”</span></div>
+    </section>
+
+    <section class="cell" id="c6">
+      <div class="cell-head"><span class="prompt">In [6]:</span><span class="cell-title">Inside training — try different questions</span><button class="copy">Copy</button><button class="run" onclick="runCell(6)">Run Cell</button></div>
+      <textarea class="code-editor" spellcheck="false"># Teaching simulator — compare candidate root splits
+
+candidate_splits = [
+    "Contract type?",
+    "Tenure &lt;= 12 months?",
+    "Monthly charges &lt;= ₹2,000?"
+]
+
+# In the real DecisionTreeClassifier, the algorithm
+# evaluates candidate splits automatically.</textarea>
+      <div class="output" id="o6">
+        <div class="info"><b>Teaching simulator:</b> click a candidate split. The tree below changes so students can see what a different root question would mean.</div>
+        <div class="question-grid">
+          <div class="question selected" data-q="contract" onclick="selectQuestion('contract')"><b>Contract type?</b><span class="small">Compare contract categories</span><br><span class="score">split quality: strong</span></div>
+          <div class="question" data-q="tenure" onclick="selectQuestion('tenure')"><b>Tenure ≤ 12 months?</b><span class="small">Short vs long tenure</span><br><span class="score">split quality: strong</span></div>
+          <div class="question" data-q="charges" onclick="selectQuestion('charges')"><b>Monthly charges ≤ ₹2,000?</b><span class="small">Lower vs higher charges</span><br><span class="score">split quality: moderate</span></div>
+        </div>
+        <div id="treeTeaching" class="tree-area" style="margin-top:12px"></div>
+        <div class="warn" style="margin-top:10px"><b>Teaching distinction:</b> You are changing the displayed question manually. In real training, the Decision Tree algorithm automatically evaluates candidate splits and selects the best one. “Best question” is a classroom-friendly analogy for “best split.”</div>
+      </div>
+      <div class="backend" id="b6"><div class="backend-head">⚙ What's happening in the backend?</div><div class="backend-body">A classification tree seeks child nodes that are more class-pure than the parent. With Gini impurity, the idea is <code>Gini = 1 − Σ(pᵢ²)</code>. The algorithm evaluates possible feature/threshold combinations and chooses a split that improves the criterion. It does not literally think in English questions; the questions shown here are a visual interpretation of mathematical split rules.</div></div>
+      <div class="voice" id="v6"><button onclick="speak(6)">▶ Listen</button><span>Trainer voice: “Now we can experiment with the idea of a best question. Remember, this is a teaching visualization. The real algorithm evaluates numerical split candidates automatically and chooses the split that gives the best improvement.”</span></div>
+    </section>
+
+    <section class="cell" id="c7">
+      <div class="cell-head"><span class="prompt">In [7]:</span><span class="cell-title">Visualize the learned tree</span><button class="copy">Copy</button><button class="run" onclick="runCell(7)">Run Cell</button></div>
+      <textarea class="code-editor" spellcheck="false">from sklearn.tree import plot_tree
+import matplotlib.pyplot as plt
+
+plot_tree(
+    model,
+    feature_names=X.columns,
+    class_names=["Stay", "Churn"],
+    filled=True
+)
+
+plt.show()</textarea>
+      <div class="output" id="o7">
+        <div class="tree-area" id="actualTree"></div>
+        <div class="small" style="margin-top:9px">A real sklearn tree node contains information such as the split rule, impurity, number of samples, class distribution and predicted class.</div>
+      </div>
+      <div class="backend" id="b7"><div class="backend-head">⚙ What's happening in the backend?</div><div class="backend-body"><code>plot_tree()</code> reads the structure that was learned during <code>fit()</code>. It is not training the model again. It simply draws the nodes, branches and leaf predictions that already exist inside the fitted DecisionTreeClassifier.</div></div>
+      <div class="voice" id="v7"><button onclick="speak(7)">▶ Listen</button><span>Trainer voice: “This visualization is the result of training. Each node represents a learned split, and each leaf represents the class prediction reached after following the branches.”</span></div>
+    </section>
+
+    <section class="cell" id="c8">
+      <div class="cell-head"><span class="prompt">In [8]:</span><span class="cell-title">Testing — predict unseen customers</span><button class="copy">Copy</button><button class="run" onclick="runCell(8)">Run Cell</button></div>
+      <textarea class="code-editor" spellcheck="false">y_pred = model.predict(X_test)
+
+print(y_pred[:10])
+print(y_test[:10].values)</textarea>
+      <div class="output" id="o8">
+        <div class="grid2">
+          <div class="card"><div class="label">Actual test labels</div><div style="font-family:monospace">[1, 0, 1, 0, 0, 1, 0, 0, 1, 0]</div></div>
+          <div class="card"><div class="label">Predicted labels</div><div style="font-family:monospace">[1, 0, 1, 1, 0, 1, 0, 0, 1, 0]</div></div>
+        </div>
+        <div class="info" style="margin-top:12px"><b>Testing = prediction on unseen data.</b> The tree is already built. <code>predict()</code> follows the learned branches for each test customer and returns the predicted class.</div>
+      </div>
+      <div class="backend" id="b8"><div class="backend-head">⚙ What's happening in the backend?</div><div class="backend-body">For each test row, the model starts at the root and checks the learned split. It follows one branch, checks the next split, and continues until it reaches a leaf. The leaf's learned class becomes the prediction. <code>predict()</code> does not retrain the tree.</div></div>
+      <div class="voice" id="v8"><button onclick="speak(8)">▶ Listen</button><span>Trainer voice: “The model is already trained. Now each unseen customer travels through the learned branches until a leaf gives the prediction.”</span></div>
+    </section>
+
+    <section class="cell" id="c9">
+      <div class="cell-head"><span class="prompt">In [9]:</span><span class="cell-title">Confusion matrix</span><button class="copy">Copy</button><button class="run" onclick="runCell(9)">Run Cell</button></div>
+      <textarea class="code-editor" spellcheck="false">from sklearn.metrics import confusion_matrix
+
+cm = confusion_matrix(y_test, y_pred)
+
+print(cm)</textarea>
+      <div class="output" id="o9">
+        <div class="matrix">
+          <div class="head"></div><div class="head">Actual Churn</div><div class="head">Actual Stay</div>
+          <div class="head">Predicted Churn</div><div class="tp"><b>35 — TP</b><br><span class="small">Correctly caught churn</span></div><div class="fp"><b>5 — FP</b><br><span class="small">False alarm</span></div>
+          <div class="head">Predicted Stay</div><div class="fn"><b>10 — FN</b><br><span class="small">Missed churn</span></div><div class="tn"><b>50 — TN</b><br><span class="small">Correctly identified stay</span></div>
+        </div>
+        <div class="grid2" style="margin-top:12px">
+          <div class="card"><b>TP</b> — Model says Churn, customer actually churns.</div>
+          <div class="card"><b>FP</b> — Model says Churn, customer actually stays.</div>
+          <div class="card"><b>FN</b> — Model says Stay, customer actually churns.</div>
+          <div class="card"><b>TN</b> — Model says Stay, customer actually stays.</div>
+        </div>
+      </div>
+      <div class="backend" id="b9"><div class="backend-head">⚙ What's happening in the backend?</div><div class="backend-body">The confusion matrix compares <code>y_test</code> (actual labels) with <code>y_pred</code> (model predictions). It counts four outcomes: True Positive, False Positive, False Negative and True Negative. These four counts become the building blocks for most classification metrics.</div></div>
+      <div class="voice" id="v9"><button onclick="speak(9)">▶ Listen</button><span>Trainer voice: “The confusion matrix tells us exactly what the model got right and what it got wrong. For churn, a false negative means we missed a customer who actually left.”</span></div>
+    </section>
+
+    <section class="cell" id="c10">
+      <div class="cell-head"><span class="prompt">In [10]:</span><span class="cell-title">Evaluation metrics</span><button class="copy">Copy</button><button class="run" onclick="runCell(10)">Run Cell</button></div>
+      <textarea class="code-editor" spellcheck="false">from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score
+)
+
+print("Accuracy :", accuracy_score(y_test, y_pred))
+print("Precision:", precision_score(y_test, y_pred))
+print("Recall   :", recall_score(y_test, y_pred))
+print("F1 Score :", f1_score(y_test, y_pred))</textarea>
+      <div class="output" id="o10">
+        <div class="metricgrid">
+          <div class="metric"><div>Accuracy</div><b>85.0%</b><span>Overall correct predictions</span></div>
+          <div class="metric"><div>Precision</div><b>87.5%</b><span>Predicted churners that were correct</span></div>
+          <div class="metric"><div>Recall</div><b>77.8%</b><span>Actual churners successfully caught</span></div>
+          <div class="metric"><div>Specificity</div><b>90.9%</b><span>Actual stayers correctly identified</span></div>
+          <div class="metric"><div>F1 Score</div><b>82.4%</b><span>Balance of precision and recall</span></div>
+        </div>
+        <div class="grid2" style="margin-top:12px">
+          <div class="card"><b>Accuracy</b><div class="small">“Out of everyone, how many predictions were correct?”</div><code>(TP + TN) / Total</code></div>
+          <div class="card"><b>Precision</b><div class="small">“When I say CHURN, how often am I right?”</div><code>TP / (TP + FP)</code></div>
+          <div class="card"><b>Recall</b><div class="small">“Of the customers who actually churned, how many did I catch?”</div><code>TP / (TP + FN)</code></div>
+          <div class="card"><b>Specificity</b><div class="small">“Of the customers who actually stayed, how many did I identify correctly?”</div><code>TN / (TN + FP)</code></div>
+        </div>
+        <div class="info" style="margin-top:12px"><b>For churn:</b> Recall can be especially important because a False Negative means a real churner was missed. Precision can also matter because retention actions cost money.</div>
+      </div>
+      <div class="backend" id="b10"><div class="backend-head">⚙ What's happening in the backend?</div><div class="backend-body">The metric functions use the same TP, FP, FN and TN counts from the predictions. Different metrics answer different business questions. Accuracy gives overall correctness; precision focuses on the reliability of positive predictions; recall focuses on finding actual positives; specificity focuses on correctly identifying negatives; F1 balances precision and recall.</div></div>
+      <div class="voice" id="v10"><button onclick="speak(10)">▶ Listen</button><span>Trainer voice: “One metric is not enough. Accuracy looks at overall correctness, precision asks how trustworthy our churn predictions are, recall asks how many actual churners we caught, and F1 balances precision and recall.”</span></div>
+    </section>
+
+    <section class="cell" id="c11">
+      <div class="cell-head"><span class="prompt">In [11]:</span><span class="cell-title">Prediction setup — new customer</span><button class="copy">Copy</button><button class="run" onclick="runCell(11)">Run Cell</button></div>
+      <textarea class="code-editor" spellcheck="false">new_customer = pd.DataFrame({
+    "contract": ["Month-to-month"],
+    "tenure": [5],
+    "monthly_charges": [2300],
+    "support_calls": [6]
+})
+
+prediction = model.predict(new_customer)
+
+print(prediction)</textarea>
+      <div class="output" id="o11">
+        <div class="grid2">
+          <div class="card">
+            <div class="label">Enter a new customer</div>
+            <div class="control" style="margin:8px 0"><label>Contract</label><select id="pc" onchange="updatePrediction()"><option>Month-to-month</option><option>One year</option><option>Two year</option></select></div>
+            <div class="control" style="margin:8px 0"><label>Tenure</label><input id="pt" type="number" value="5" min="0" onchange="updatePrediction()"></div>
+            <div class="control" style="margin:8px 0"><label>Charges</label><input id="pch" type="number" value="2300" min="0" onchange="updatePrediction()"></div>
+            <div class="control" style="margin:8px 0"><label>Support calls</label><input id="ps" type="number" value="6" min="0" onchange="updatePrediction()"></div>
+            <button class="run" style="margin-top:5px" onclick="updatePrediction()">Predict</button>
+          </div>
+          <div class="card"><div class="label">Prediction path</div><div id="predictionPath" class="small"></div><div id="predictionResult" style="margin-top:12px"></div></div>
+        </div>
+      </div>
+      <div class="backend" id="b11"><div class="backend-head">⚙ What's happening in the backend?</div><div class="backend-body">The new customer's feature values are passed to the already-trained model. The same preprocessing used during training must be applied to new data. The model then follows its learned decision rules and reaches a leaf. The leaf produces the predicted class. <code>predict()</code> uses the model; it does not rebuild it.</div></div>
+      <div class="voice" id="v11"><button onclick="speak(11)">▶ Listen</button><span>Trainer voice: “Now we have a completely new customer. The trained tree is already fixed. We pass the customer's features through the learned branches and arrive at a final Churn or Stay prediction.”</span></div>
+    </section>
+
+    <section class="cell" id="c12">
+      <div class="cell-head"><span class="prompt">In [12]:</span><span class="cell-title">Complete backend flow</span><button class="copy">Copy</button><button class="run" onclick="runCell(12)">Run Cell</button></div>
+      <textarea class="code-editor" spellcheck="false"># Complete machine-learning workflow
+
+df = pd.read_csv("customer_churn.csv")
+df_encoded = pd.get_dummies(df, drop_first=True)
+
+X = df_encoded.drop("churn", axis=1)
+y = df_encoded["churn"]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.20, random_state=42, stratify=y
+)
+
+model = DecisionTreeClassifier(max_depth=4, random_state=42)
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+
+# Evaluate → then use the trained model for new customers</textarea>
+      <div class="output" id="o12">
+        <div class="card">
+          <div style="font-size:15px;font-weight:800">The complete story</div>
+          <div style="margin-top:12px;line-height:2.05;font-family:ui-monospace,monospace;color:#c9d4e1">
+            CSV → DataFrame<br>
+            ↓<br>
+            Encoding → numerical features<br>
+            ↓<br>
+            X / y separation<br>
+            ↓<br>
+            80% Training / 20% Testing<br>
+            ↓<br>
+            <b style="color:#4da3ff">fit()</b> → evaluate splits → build tree<br>
+            ↓<br>
+            <b style="color:#b678ff">predict(X_test)</b> → unseen predictions<br>
+            ↓<br>
+            Confusion Matrix → TP / FP / FN / TN<br>
+            ↓<br>
+            Accuracy / Precision / Recall / Specificity / F1<br>
+            ↓<br>
+            New Customer → follow learned branches → <b>Churn / Stay</b>
+          </div>
+        </div>
+      </div>
+      <div class="backend" id="b12"><div class="backend-head">⚙ Final backend explanation</div><div class="backend-body">The important separation is: <b>fit() learns</b>, <b>predict() uses what was learned</b>, and <b>evaluation measures how well those predictions worked</b>. The tree's branches are learned from training data. Testing checks those learned rules on unseen data. Only after evaluating the model do we use it to make predictions for new customers.</div></div>
+      <div class="voice" id="v12"><button onclick="speak(12)">▶ Listen</button><span>Trainer voice: “This is the full workflow: read the data, encode it, split it, train the tree, test it, evaluate it, and finally use the trained model to predict a new customer's churn status.”</span></div>
+    </section>
+
+  </div>
+  <div class="footer">Jupyter-style classroom simulator • The displayed data and metric values are illustrative teaching examples.</div>
+</div>
+
+<script>
+const voiceText={
+1:"First, we read the historical customer data. Each row is a customer, and Churn is the outcome we eventually want the model to predict.",
+2:"Here we convert categories into binary numerical columns. The reference category is represented by zeros, while the selected non-reference category gets a one in its corresponding column.",
+3:"X contains the customer information. y contains Churn, the answer we want the model to learn.",
+4:"We keep eighty percent for learning and twenty percent aside. The model must not see the test answers during training, because we want an honest test of how it performs on unseen customers.",
+5:"This is training. The algorithm examines possible splits, chooses useful ones according to the criterion, and recursively builds the branches of the tree.",
+6:"Now we can experiment with the idea of a best question. Remember, this is a teaching visualization. The real algorithm evaluates numerical split candidates automatically and chooses the split that gives the best improvement.",
+7:"This visualization is the result of training. Each node represents a learned split, and each leaf represents the class prediction reached after following the branches.",
+8:"The model is already trained. Now each unseen customer travels through the learned branches until a leaf gives the prediction.",
+9:"The confusion matrix tells us exactly what the model got right and what it got wrong. For churn, a false negative means we missed a customer who actually left.",
+10:"One metric is not enough. Accuracy looks at overall correctness, precision asks how trustworthy our churn predictions are, recall asks how many actual churners we caught, and F1 balances precision and recall.",
+11:"Now we have a completely new customer. The trained tree is already fixed. We pass the customer's features through the learned branches and arrive at a final Churn or Stay prediction.",
+12:"This is the full workflow: read the data, encode it, split it, train the tree, test it, evaluate it, and finally use the trained model to predict a new customer's churn status."
+};
+function runCell(n){
+ const o=document.getElementById("o"+n),b=document.getElementById("b"+n),v=document.getElementById("v"+n);
+ o.classList.add("show");b.classList.add("show");v.classList.add("show");
+
+ // The code area is editable like a notebook cell.
+ // Removing a print()/display line therefore only removes that output line;
+ // the teaching output panel remains available for the visual explanation.
+ const editor=document.querySelector("#c"+n+" .code-editor");
+ if(editor){
+   editor.dataset.lastRun=editor.value;
+   editor.style.outline="1px solid #238b4e";
+   setTimeout(()=>editor.style.outline="",700);
+ }
+
+ if(n===2){updateEncoding()}
+ if(n===6){renderTree("contract","treeTeaching")}
+ if(n===7){renderTree("contract","actualTree")}
+ if(n===11){updatePrediction()}
+ document.querySelector("#c"+n+" .run").textContent="✓ Run Again";
+}
+function speak(n){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(voiceText[n]);u.rate=.95;u.pitch=1;speechSynthesis.speak(u)}
+function updateEncoding(){
+ const c=document.getElementById("encContract").value;
+ let html="",exp="";
+ if(c==="Month-to-month"){html=`<div class="flex"><span class="card"><b>contract_One year</b><br><span class="score">0</span></span><span class="card"><b>contract_Two year</b><br><span class="score">0</span></span></div>`;exp="<b>Month-to-month is the reference category.</b> Because it was dropped, it is represented by 0 in both remaining contract dummy columns."}
+ if(c==="One year"){html=`<div class="flex"><span class="card"><b>contract_One year</b><br><span class="score">1</span></span><span class="card"><b>contract_Two year</b><br><span class="score">0</span></span></div>`;exp="<b>One year</b> activates its dummy column with 1. The Two year dummy is 0."}
+ if(c==="Two year"){html=`<div class="flex"><span class="card"><b>contract_One year</b><br><span class="score">0</span></span><span class="card"><b>contract_Two year</b><br><span class="score">1</span></span></div>`;exp="<b>Two year</b> activates its dummy column with 1. The One year dummy is 0."}
+ document.getElementById("encodingDemo").innerHTML=html;
+ document.getElementById("encExplain").innerHTML=exp;
+}
+function selectQuestion(q){
+ document.querySelectorAll(".question").forEach(x=>x.classList.toggle("selected",x.dataset.q===q));
+ renderTree(q,"treeTeaching");
+}
+function renderTree(q,id){
+ const root=q==="contract"?"Contract type?":q==="tenure"?"Tenure ≤ 12 months?":"Monthly charges ≤ ₹2,000?";
+ const left=q==="contract"?"Month-to-month":q==="tenure"?"YES: ≤ 12":"YES: ≤ ₹2,000";
+ const right=q==="contract"?"Long-term":q==="tenure"?"NO: > 12":"NO: > ₹2,000";
+ document.getElementById(id).innerHTML=`<svg viewBox="0 0 900 500">
+ <line class="edge active" x1="450" y1="95" x2="245" y2="190"/><line class="edge active" x1="450" y1="95" x2="655" y2="190"/>
+ <line class="edge" x1="245" y1="260" x2="150" y2="365"/><line class="edge" x1="245" y1="260" x2="340" y2="365"/><line class="edge" x1="655" y1="260" x2="655" y2="365"/>
+ <rect class="tree-node rootnode" x="320" y="25" width="260" height="70" rx="14"/><text class="svgtext" x="450" y="54" text-anchor="middle" font-size="16" font-weight="700">${root}</text><text class="svmuted" x="450" y="76" text-anchor="middle" font-size="11">learned / candidate split</text>
+ <rect class="tree-node" x="140" y="190" width="210" height="70" rx="14"/><text class="svgtext" x="245" y="220" text-anchor="middle" font-weight="700">${left}</text><text class="svmuted" x="245" y="241" text-anchor="middle" font-size="11">branch</text>
+ <rect class="tree-node" x="550" y="190" width="210" height="70" rx="14"/><text class="svgtext" x="655" y="220" text-anchor="middle" font-weight="700">${right}</text><text class="svmuted" x="655" y="241" text-anchor="middle" font-size="11">branch</text>
+ <rect class="tree-node" x="65" y="365" width="170" height="70" rx="14"/><text class="svgtext" x="150" y="394" text-anchor="middle" font-weight="700">Next split</text><text class="svmuted" x="150" y="415" text-anchor="middle" font-size="11">continue learning</text>
+ <rect class="tree-node churnnode" x="255" y="365" width="170" height="70" rx="14"/><text class="svgtext" x="340" y="394" text-anchor="middle" font-weight="700">CHURN</text><text class="svmuted" x="340" y="415" text-anchor="middle" font-size="11">leaf prediction</text>
+ <rect class="tree-node staynode" x="570" y="365" width="170" height="70" rx="14"/><text class="svgtext" x="655" y="394" text-anchor="middle" font-weight="700">STAY</text><text class="svmuted" x="655" y="415" text-anchor="middle" font-size="11">leaf prediction</text>
+ <text class="svmuted" x="450" y="470" text-anchor="middle" font-size="12">Training creates the tree • Prediction follows the learned branches</text>
+ </svg>`;
+}
+function updatePrediction(){
+ const c=document.getElementById("pc").value,t=Number(document.getElementById("pt").value),ch=Number(document.getElementById("pch").value),s=Number(document.getElementById("ps").value);
+ const churn=(c==="Month-to-month"&&t<=12)||(ch>2000&&s>=4);
+ const result=churn?"CHURN":"STAY";
+ const cls=churn?"prediction churn":"prediction stay";
+ document.getElementById("predictionPath").innerHTML=
+ `Contract = <b>${c}</b><br>→ Tenure = <b>${t}</b> months<br>→ Charges = <b>₹${ch}</b><br>→ Support calls = <b>${s}</b><br>→ Follow learned tree branches`;
+ document.getElementById("predictionResult").innerHTML=`<div class="${cls}">Prediction: ${result}</div><div class="small" style="margin-top:8px">Illustrative classroom rule. In a real model, <code>model.predict()</code> uses the actual fitted tree.</div>`;
+}
+updateEncoding();
+</script>
+</body>
+</html>
